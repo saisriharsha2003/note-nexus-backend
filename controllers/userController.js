@@ -1,5 +1,6 @@
 const { StatusCodes } = require('http-status-codes');
 const User = require('../models/User');
+const Note = require('../models/Note')
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcryptjs");
 
@@ -57,5 +58,43 @@ const signin = async (req, res) => {
   }
 };
 
+const add_note = async (req, res) => {
+  try {
+    const { title, content } = req.body;
 
-module.exports = { signup, signin };
+    const noteid = Math.floor(10000 + Math.random() * 90000).toString();
+
+    const newNote = new Note({
+      noteid,
+      title,
+      content
+    });
+
+    const savedNote = await newNote.save();
+
+    res.status(201).json({
+      message: 'Note added successfully',
+      note: savedNote,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: 'Error adding note',
+      error: error.message,
+      
+    });
+  }
+};
+
+const view_notes = async (req, res) => {
+  try {
+    const notes = await Note.find();
+    console.log(notes);
+    res.status(200).json({ notes, message: "Fetched All Notes!" });
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching notes" });
+  }
+
+};
+
+module.exports = { signup, signin, add_note, view_notes };
