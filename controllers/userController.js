@@ -52,7 +52,7 @@ const signin = async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    res.status(StatusCodes.OK).json({ token, name: user.name,  message: "Login Successfull!!"  }); 
+    res.status(StatusCodes.OK).json({ token, name: user.name, username: user.uname, message: "Login Successfull!!"  }); 
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ Error: 'Error signing in', error });
   }
@@ -62,12 +62,12 @@ const add_note = async (req, res) => {
   try {
     const { title, content } = req.body;
 
-    const noteid = Math.floor(10000 + Math.random() * 90000).toString();
+    const owner = req.body.owner || req.user.name; 
 
     const newNote = new Note({
-      noteid,
       title,
-      content
+      content,
+      owner, 
     });
 
     const savedNote = await newNote.save();
@@ -81,10 +81,10 @@ const add_note = async (req, res) => {
     res.status(500).json({
       message: 'Error adding note',
       error: error.message,
-      
     });
   }
 };
+
 
 const view_notes = async (req, res) => {
   try {
@@ -117,7 +117,6 @@ const view_note_by_id = async (req, res) => {
 const edit_note = async (req, res) => {
   
   const {id, title, content } = req.body; 
-  console.log("Id   "+id+"  "+title+"   "+content);
 
   try {
     const updatedNote = await Note.findByIdAndUpdate(
@@ -138,5 +137,55 @@ const edit_note = async (req, res) => {
   }
 };
 
+const delete_note = async (req, res) => {
+  const { id } = req.params; 
+  console.log("delete note ............"+ id)
+  try {
+    const deletedNote = await Note.findByIdAndDelete(id);
 
-module.exports = { signup, signin, add_note, view_notes, view_note_by_id, edit_note};
+    if (!deletedNote) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Note successfully deleted",
+    });
+  } catch (error) {
+    console.error("Error deleting note:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Could not delete note",
+    });
+  }
+};
+
+const getUserProfile = async (req, res) => {
+  try {
+    const uname = req.username;
+    console.log(uname);
+    const user = await User.findById(uname).select("-password"); 
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "User profile fetched successfully",
+      user,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Error fetching user profile",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = { signup, signin, add_note, view_notes, view_note_by_id, edit_note, delete_note, getUserProfile};
