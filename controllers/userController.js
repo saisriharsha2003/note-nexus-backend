@@ -38,12 +38,12 @@ const signin = async (req, res) => {
   try {
     const user = await User.findOne({ uname });
     if (!user) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({ Error: 'Invalid email or password' });
+      return res.status(StatusCodes.UNAUTHORIZED).json({ Error: 'Username Not Found' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password); 
     if (!isPasswordValid) {
-      return res.status(StatusCodes.UNAUTHORIZED).json({ Error: 'Invalid email or password' });
+      return res.status(StatusCodes.UNAUTHORIZED).json({ Error: 'Wrong Password' });
     }
 
     const token = jwt.sign(
@@ -165,27 +165,92 @@ const delete_note = async (req, res) => {
 
 const getUserProfile = async (req, res) => {
   try {
-    const uname = req.username;
-    console.log(uname);
-    const user = await User.findById(uname).select("-password"); 
+    const { uname } = req.params; 
+
+    const user = await User.findOne({ uname });
 
     if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     res.status(200).json({
-      message: "User profile fetched successfully",
-      user,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      uname: user.uname,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      message: "Error fetching user profile",
+    res.status(500).json({ message: "Error fetching user profile", error: error.message });
+  }
+};
+
+const updateUserProfile = async (req, res) => {
+  const { uname } = req.params;
+  const { name, email, mobile, newUname } = req.body; // Include newUname in destructuring
+
+  try {
+    const user = await User.findOne({ uname });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (mobile) user.mobile = mobile;
+
+    if (newUname) {
+      const existingUser = await User.findOne({ uname: newUname });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Username already taken' });
+      }
+      user.uname = newUname;
+    }
+
+    const updatedUser = await user.save();
+
+    return res.status(200).json({
+      message: 'Profile updated successfully',
+      user: updatedUser,
+      uname: updatedUser.uname, 
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error updating profile',
       error: error.message,
     });
   }
 };
 
-module.exports = { signup, signin, add_note, view_notes, view_note_by_id, edit_note, delete_note, getUserProfile};
+const updatePassword = async (req, res) => {
+  try {
+    const { uname } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findOne({ uname });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedNewPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating password", error: error.message });
+  }
+};
+
+
+module.exports = { signup, signin, add_note, view_notes, view_note_by_id, edit_note, delete_note, getUserProfile, updatePassword, updateUserProfile};
