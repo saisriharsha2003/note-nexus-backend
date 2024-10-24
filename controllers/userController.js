@@ -1,6 +1,6 @@
 const { StatusCodes } = require('http-status-codes');
 const User = require('../models/User');
-const Note = require('../models/Note')
+const Note = require('../models/Note');
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcryptjs");
 
@@ -97,4 +97,46 @@ const view_notes = async (req, res) => {
 
 };
 
-module.exports = { signup, signin, add_note, view_notes };
+const view_note_by_id = async (req, res) => {
+  const { noteid } = req.params;
+
+  try {
+    const note = await Note.findOne({ _id: noteid });
+
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    res.json({ note, message: 'Note fetched successfully' });
+  } catch (error) {
+    console.error('Error fetching note:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const edit_note = async (req, res) => {
+  
+  const {id, title, content } = req.body; 
+  console.log("Id   "+id+"  "+title+"   "+content);
+
+  try {
+    const updatedNote = await Note.findByIdAndUpdate(
+      id,  
+      { title, content },
+      { new: true, runValidators: true } 
+    );
+
+    if (!updatedNote) {
+      return res.status(404).json({ message: 'Note not found.' });
+    }
+
+    console.log(`Updated note: ${updatedNote.title}`);
+    return res.status(200).json({ message: 'Note updated successfully.', note: updatedNote });
+  } catch (error) {
+    console.error("Error updating note:", error);
+    return res.status(500).json({ message: 'Error updating note.', error: error.message });
+  }
+};
+
+
+module.exports = { signup, signin, add_note, view_notes, view_note_by_id, edit_note};
