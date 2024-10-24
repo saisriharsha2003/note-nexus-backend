@@ -77,7 +77,6 @@ const add_note = async (req, res) => {
       note: savedNote,
     });
   } catch (error) {
-    console.log(error);
     res.status(500).json({
       message: 'Error adding note',
       error: error.message,
@@ -89,7 +88,6 @@ const add_note = async (req, res) => {
 const view_notes = async (req, res) => {
   try {
     const notes = await Note.find();
-    console.log(notes);
     res.status(200).json({ notes, message: "Fetched All Notes!" });
   } catch (error) {
     res.status(500).json({ error: "Error fetching notes" });
@@ -128,8 +126,6 @@ const edit_note = async (req, res) => {
     if (!updatedNote) {
       return res.status(404).json({ message: 'Note not found.' });
     }
-
-    console.log(`Updated note: ${updatedNote.title}`);
     return res.status(200).json({ message: 'Note updated successfully.', note: updatedNote });
   } catch (error) {
     console.error("Error updating note:", error);
@@ -139,7 +135,6 @@ const edit_note = async (req, res) => {
 
 const delete_note = async (req, res) => {
   const { id } = req.params; 
-  console.log("delete note ............"+ id)
   try {
     const deletedNote = await Note.findByIdAndDelete(id);
 
@@ -187,7 +182,7 @@ const getUserProfile = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
   const { uname } = req.params;
-  const { name, email, mobile, newUname } = req.body; // Include newUname in destructuring
+  const { name, email, mobile, newUname } = req.body; 
 
   try {
     const user = await User.findOne({ uname });
@@ -196,7 +191,7 @@ const updateUserProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update fields
+
     if (name) user.name = name;
     if (email) user.email = email;
     if (mobile) user.mobile = mobile;
